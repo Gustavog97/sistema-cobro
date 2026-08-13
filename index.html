@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POS & Inventario - NUNI POS</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Html5-Qrcode CDN -->
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <style>
+    /* Scrollbar personalizada */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #6366f1; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #4f46e5; }
+  </style>
+</head>
+<body class="bg-slate-900 font-sans min-h-screen flex flex-col text-slate-800 antialiased selection:bg-fuchsia-500 selection:text-white bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-indigo-950 to-slate-950">
+
+  <!-- PANTALLA DE LOGIN -->
+  <div id="login-screen" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border-2 border-indigo-500/30">
+      <div class="text-center mb-6">
+        <div class="w-20 h-20 bg-gradient-to-tr from-fuchsia-600 via-indigo-600 to-cyan-500 text-white rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-xl shadow-indigo-500/30 transform -rotate-3">
+          <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+        </div>
+        <h2 class="text-3xl font-black text-slate-800 tracking-tight">Iniciar Sesión</h2>
+        <p class="text-xs text-indigo-600 font-bold uppercase tracking-wider mt-1">NUNI POS Control</p>
+      </div>
+
+      <form onsubmit="handleLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Usuario</label>
+          <select id="login-user" class="w-full p-3.5 border-2 border-slate-200 rounded-xl bg-slate-50 font-bold outline-none focus:border-indigo-500 focus:bg-white transition text-slate-700">
+            <!-- Cargado dinámicamente -->
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Clave / PIN</label>
+          <input type="password" id="login-pin" placeholder="••••" required class="w-full p-3.5 border-2 border-slate-200 rounded-xl outline-none focus:border-indigo-500 bg-slate-50 focus:bg-white font-mono font-bold transition">
+        </div>
+        <button type="submit" class="w-full bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-cyan-500 hover:from-fuchsia-700 hover:to-cyan-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-indigo-500/30 transition active:scale-[0.98] text-base">
+          INGRESAR AL SISTEMA
+        </button>
+      </form>
+      
+      <div class="mt-6 p-4 bg-amber-500/10 border-2 border-amber-500/20 rounded-2xl text-xs text-amber-900">
+        <p class="font-black mb-1 flex items-center gap-1.5 text-amber-700">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
+          Usuarios por defecto:
+        </p>
+        <p>• <strong>Nuni</strong> - Clave: <code class="bg-amber-200/80 px-1.5 py-0.5 rounded font-mono font-bold">1234</code></p>
+        <p>• <strong>July</strong> - Clave: <code class="bg-amber-200/80 px-1.5 py-0.5 rounded font-mono font-bold">0000</code></p>
+        <p>• <strong>Gustavo</strong> - Clave: <code class="bg-amber-200/80 px-1.5 py-0.5 rounded font-mono font-bold">0000</code></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- APLICACIÓN PRINCIPAL -->
+  <div id="app-screen" class="hidden flex-col min-h-screen">
+    
+    <!-- Header -->
+    <header class="bg-slate-900/90 border-b border-indigo-500/30 backdrop-blur-md sticky top-0 z-40">
+      <div class="max-w-7xl mx-auto p-4 flex flex-col md:flex-row justify-between items-center gap-4">
+        
+        <div class="flex items-center gap-3">
+          <div class="p-2.5 bg-gradient-to-tr from-emerald-400 via-cyan-500 to-indigo-500 rounded-2xl shadow-lg shadow-cyan-500/30 text-white font-black">
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"></path></svg>
+          </div>
+          <div>
+            <h1 class="text-2xl font-black tracking-wide bg-gradient-to-r from-emerald-400 via-cyan-300 to-fuchsia-400 bg-clip-text text-transparent">NUNI POS</h1>
+            <p class="text-[10px] text-indigo-300 font-bold tracking-widest uppercase">Sistema Integrado de Caja</p>
+          </div>
+        </div>
+
+        <!-- Navegación -->
+        <nav class="flex bg-slate-950/80 p-1.5 rounded-2xl border border-indigo-500/30 gap-1.5 shadow-inner">
+          <button id="btn-caja" onclick="changeTab('caja')" class="px-5 py-2.5 rounded-xl text-xs font-black transition-all shadow-md bg-gradient-to-r from-emerald-500 to-teal-600 text-white">CAJA</button>
+          <button id="btn-inventario" onclick="changeTab('inventario')" class="px-5 py-2.5 rounded-xl text-xs font-black transition-all text-indigo-200 hover:text-white hover:bg-indigo-600/30">INVENTARIO</button>
+          <button id="btn-deudores" onclick="changeTab('deudores')" class="px-5 py-2.5 rounded-xl text-xs font-black transition-all text-indigo-200 hover:text-white hover:bg-indigo-600/30">DEUDORES</button>
+          <button id="btn-historial" onclick="changeTab('historial')" class="px-5 py-2.5 rounded-xl text-xs font-black transition-all text-indigo-200 hover:text-white hover:bg-indigo-600/30">HISTORIAL</button>
+        </nav>
+
+        <!-- Usuario & Logout -->
+        <div class="flex items-center gap-3">
+          <div class="bg-indigo-950/80 border border-emerald-500/40 px-4 py-1.5 rounded-full flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+            <span id="current-user-name" class="text-xs font-black text-emerald-300">Usuario</span>
+          </div>
+          <button onclick="handleLogout()" class="bg-rose-500/20 hover:bg-rose-500/40 text-rose-300 border border-rose-500/40 px-4 py-1.5 rounded-xl font-bold text-xs transition">Salir</button>
+        </div>
+
+      </div>
+    </header>
+
+    <!-- Toast Notifications -->
+    <div id="toast" class="fixed bottom-5 right-5 z-50 hidden text-white px-5 py-3.5 rounded-2xl shadow-2xl font-bold text-sm transition-all duration-300 flex items-center gap-2 border-2"></div>
+
+    <!-- Contenido Principal -->
+    <main class="flex-1 p-4 md:p-6 max-w-7xl mx-auto w-full">
+
+      <!-- PESTAÑA 1: CAJA -->
+      <section id="tab-caja" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <div class="lg:col-span-2 space-y-4">
+          <div class="bg-white p-4 rounded-2xl shadow-xl border-2 border-indigo-100 flex flex-col sm:flex-row gap-3">
+            <div class="relative flex-1">
+              <input type="text" id="sku-input" placeholder="Escaneá o escribí el SKU (Enter para buscar)..." class="w-full pl-11 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:border-cyan-500 outline-none font-bold text-slate-700 bg-slate-50 focus:bg-white transition">
+              <svg class="w-5 h-5 absolute left-3.5 top-3.5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+            </div>
+            <button onclick="startCameraScanner('caja')" class="bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-600 hover:to-indigo-700 text-white px-5 py-3 rounded-xl flex items-center justify-center gap-2 font-black shadow-lg shadow-cyan-500/20 transition shrink-0">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path></svg>
+              <span>Escanear Cámara</span>
+            </button>
+            <button onclick="openManualItemModal()" class="bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-700 hover:to-pink-700 text-white px-5 py-3 rounded-xl flex items-center justify-center gap-2 font-black shadow-lg shadow-fuchsia-500/20 transition shrink-0">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+              <span>+ Sin SKU</span>
+            </button>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl shadow-xl border-2 border-indigo-100 hidden">
+            <h3 class="font-black text-slate-800 text-base mb-4 flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-cyan-500 animate-pulse"></span> Catálogo de Productos
+            </h3>
+            <div id="catalog-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[480px] overflow-y-auto pr-1"></div>
+          </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow-xl border-2 border-emerald-500/30 flex flex-col justify-between min-h-[600px]">
+          <div>
+            <div class="flex items-center justify-between pb-4 border-b-2 border-slate-100">
+              <h2 class="text-lg font-black text-slate-800 flex items-center gap-2">Ticket de Compra</h2>
+              <span class="text-xs bg-emerald-100 text-emerald-800 border border-emerald-300 font-black px-3 py-1 rounded-full">Caja Activa</span>
+            </div>
+
+            <div id="cart-items" class="overflow-y-auto max-h-[300px] my-4 space-y-3 divide-y divide-slate-100 pr-1"></div>
+          </div>
+
+          <div class="border-t-2 border-slate-100 pt-4 space-y-3.5">
+            <div class="flex justify-between items-center text-slate-600 text-sm">
+              <label for="payment-method" class="font-black text-xs uppercase tracking-wider text-slate-500">Método de Pago:</label>
+              <select id="payment-method" onchange="toggleDebtorSelector()" class="border-2 border-indigo-200 font-black rounded-xl px-3 py-1.5 bg-indigo-50 focus:bg-white focus:border-indigo-500 outline-none text-indigo-900 text-sm">
+                <option value="Efectivo">💵 Efectivo</option>
+                <option value="Transferencia">📲 Transferencia</option>
+                <option value="Fiado">🤝 Fiado</option>
+              </select>
+            </div>
+
+            <div id="debtor-select-container" class="hidden bg-amber-500/10 p-3 rounded-xl border-2 border-amber-500/30 space-y-1">
+              <label class="block text-xs font-black text-amber-900">Seleccionar Deudor:</label>
+              <select id="debtor-select" class="w-full border-2 border-amber-300 rounded-lg p-2 text-xs font-bold bg-white outline-none text-amber-900"></select>
+            </div>
+
+            <div id="cash-calculation-container" class="bg-slate-50 p-3.5 rounded-2xl border-2 border-slate-200 space-y-2.5">
+              <div class="flex justify-between items-center">
+                <label for="paid-amount" class="text-xs font-black uppercase tracking-wider text-slate-500">Paga con ($):</label>
+                <input type="number" step="0.01" id="paid-amount" placeholder="0.00" oninput="calculateChange()" class="w-32 p-2 text-right font-mono font-black border-2 border-slate-300 rounded-xl outline-none focus:border-emerald-500 bg-white text-slate-800">
+              </div>
+              <div class="flex justify-between items-center font-bold text-sm">
+                <span class="text-slate-500 text-xs font-black uppercase tracking-wider">Vuelto:</span>
+                <span id="change-amount" class="text-emerald-600 font-mono text-lg font-black">$0.00</span>
+              </div>
+            </div>
+
+            <div class="flex justify-between items-center text-3xl font-black text-slate-900 pt-1">
+              <span>Total:</span>
+              <span id="cart-total" class="text-indigo-600 font-mono">$0.00</span>
+            </div>
+
+            <button onclick="processCheckout()" class="w-full bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white py-4 rounded-2xl font-black text-xl shadow-xl shadow-emerald-500/30 transition active:scale-[0.98]">
+              COBRAR VENTA
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- PESTAÑA 2: INVENTARIO -->
+      <section id="tab-inventario" class="hidden space-y-6">
+        <div class="bg-white p-6 rounded-2xl shadow-xl border-2 border-indigo-100">
+          <div class="flex justify-between items-center mb-4">
+            <h2 id="form-title" class="text-lg font-black text-slate-800 flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-indigo-600"></span> Registrar Producto
+            </h2>
+            <button id="btn-cancel-edit" onclick="cancelEditingProduct()" class="hidden text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 font-black px-3 py-1.5 rounded-lg transition">
+              ✖ Cancelar Edición
+            </button>
+          </div>
+
+          <form id="product-form" onsubmit="saveProduct(event)" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            <input type="hidden" id="p-id">
+            <div>
+              <label class="block text-xs font-black uppercase tracking-wider text-slate-500 mb-1.5">SKU / Código</label>
+              <div class="flex gap-2">
+                <input type="text" id="p-sku" required placeholder="Escribí o escaneá..." class="w-full p-2.5 border-2 border-slate-200 rounded-xl focus:border-indigo-500 outline-none font-bold">
+                <button type="button" onclick="startCameraScanner('p-sku')" title="Escanear con Cámara" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2.5 rounded-xl flex items-center justify-center transition shrink-0 shadow-md shadow-indigo-500/20">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path></svg>
+                </button>
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-black uppercase tracking-wider text-slate-500 mb-1.5">Nombre</label>
+              <input type="text" id="p-name" required class="w-full p-2.5 border-2 border-slate-200 rounded-xl focus:border-indigo-500 outline-none font-bold">
+            </div>
+            <div>
+              <label class="block text-xs font-black uppercase tracking-wider text-slate-500 mb-1.5">Precio ($)</label>
+              <input type="number" step="0.01" id="p-price" required class="w-full p-2.5 border-2 border-slate-200 rounded-xl focus:border-indigo-500 outline-none font-mono font-bold">
+            </div>
+            <div>
+              <label class="block text-xs font-black uppercase tracking-wider text-slate-500 mb-1.5">Stock</label>
+              <input type="number" id="p-stock" required class="w-full p-2.5 border-2 border-slate-200 rounded-xl focus:border-indigo-500 outline-none font-bold">
+            </div>
+            <div class="md:col-span-4 flex justify-end">
+              <button type="submit" id="btn-save-product" class="bg-gradient-to-r from-indigo-600 to-fuchsia-600 hover:from-indigo-700 hover:to-fuchsia-700 text-white px-8 py-3 rounded-xl font-black transition shadow-lg shadow-indigo-500/20">
+                Guardar Producto
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-xl border-2 border-indigo-100 overflow-hidden">
+          <div class="p-5 border-b border-slate-100">
+            <h3 class="font-black text-slate-800">Listado de Inventario</h3>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-indigo-50/50 text-indigo-900 text-xs font-black uppercase tracking-wider border-b border-slate-100">
+                  <th class="p-4">SKU</th>
+                  <th class="p-4">Producto</th>
+                  <th class="p-4">Precio</th>
+                  <th class="p-4">Stock</th>
+                  <th class="p-4 text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="inventory-table-body" class="divide-y divide-slate-100 text-sm font-bold"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- PESTAÑA 3: DEUDORES -->
+      <section id="tab-deudores" class="hidden space-y-6">
+        <div class="bg-white p-6 rounded-2xl shadow-xl border-2 border-indigo-100">
+          <h2 class="text-lg font-black text-slate-800 mb-4 flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-rose-500"></span> Registrar Nuevo Deudor
+          </h2>
+          <form onsubmit="saveDebtor(event)" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-black uppercase tracking-wider text-slate-500 mb-1.5">Nombre Completo</label>
+              <input type="text" id="d-name" required placeholder="Ej: María López" class="w-full p-2.5 border-2 border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-bold">
+            </div>
+            <div>
+              <label class="block text-xs font-black uppercase tracking-wider text-slate-500 mb-1.5">Deuda Inicial ($)</label>
+              <input type="number" step="0.01" id="d-initial" value="0" class="w-full p-2.5 border-2 border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-mono font-bold">
+            </div>
+            <div class="sm:col-span-3 flex justify-end">
+              <button type="submit" class="bg-gradient-to-r from-indigo-600 to-fuchsia-600 hover:from-indigo-700 hover:to-fuchsia-700 text-white px-8 py-3 rounded-xl font-black transition shadow-lg shadow-indigo-500/20">Agregar Deudor</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-xl border-2 border-indigo-100 overflow-hidden">
+          <div class="p-5 border-b border-slate-100 flex justify-between items-center">
+            <h3 class="font-black text-slate-800">Clientes con Cuenta Corriente</h3>
+            <span id="total-debt-badge" class="bg-rose-100 text-rose-800 border border-rose-300 text-xs font-black px-3.5 py-1.5 rounded-full">Total Deudas: $0.00</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-rose-50/50 text-rose-900 text-xs font-black uppercase tracking-wider border-b border-slate-100">
+                  <th class="p-4">Nombre</th>
+                  <th class="p-4">Teléfono</th>
+                  <th class="p-4">Deuda Actual</th>
+                  <th class="p-4 text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="debtors-table-body" class="divide-y divide-slate-100 text-sm font-bold"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- PESTAÑA 4: HISTORIAL GENERAL DE VENTAS -->
+      <section id="tab-historial" class="hidden bg-white rounded-2xl shadow-xl border-2 border-indigo-100 overflow-hidden">
+        <div class="p-5 border-b border-slate-100">
+          <h2 class="font-black text-slate-800">Registro General de Ventas</h2>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-50 text-slate-500 text-xs font-black uppercase tracking-wider border-b border-slate-100">
+                <th class="p-4">Fecha y Hora</th>
+                <th class="p-4">Atendido por</th>
+                <th class="p-4">Items</th>
+                <th class="p-4">Método / Detalle</th>
+                <th class="p-4">Total</th>
+              </tr>
+            </thead>
+            <tbody id="sales-table-body" class="divide-y divide-slate-100 text-sm font-bold"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- MODAL HISTORIAL DE DEUDA INDIVIDUAL -->
+  <div id="debtor-history-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-6 max-w-lg w-full space-y-4 shadow-2xl border-2 border-indigo-500/30">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <div>
+          <h3 id="history-modal-title" class="font-black text-slate-800 text-xl">Estado de Cuenta</h3>
+          <p id="history-modal-subtitle" class="text-xs text-rose-600 font-black"></p>
+        </div>
+        <button onclick="closeDebtorHistoryModal()" class="text-slate-400 hover:text-slate-600 text-2xl font-black">&times;</button>
+      </div>
+
+      <div class="max-h-80 overflow-y-auto pr-1">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="text-[10px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-100">
+              <th class="py-2">Fecha</th>
+              <th class="py-2">Tipo / Detalle</th>
+              <th class="py-2 text-right">Monto</th>
+            </tr>
+          </thead>
+          <tbody id="debtor-history-body" class="divide-y divide-slate-100 text-xs font-bold"></tbody>
+        </table>
+      </div>
+
+      <div class="pt-2">
+        <button onclick="closeDebtorHistoryModal()" class="w-full bg-slate-100 hover:bg-slate-200 py-3 rounded-xl text-slate-700 font-bold transition">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODALS SECUNDARIOS (SIN CAMBIOS) -->
+  <div id="manual-item-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl border-2 border-fuchsia-500/30">
+      <h3 class="font-black text-slate-800 text-xl">Agregar Venta Libre / Sin SKU</h3>
+      <div>
+        <label class="block text-xs font-black uppercase tracking-wider text-slate-500 mb-1.5">Concepto / Nombre</label>
+        <input type="text" id="manual-name" placeholder="Ej: Venta Varios, Recargo..." class="w-full p-3 border-2 border-slate-200 rounded-xl font-bold outline-none focus:border-fuchsia-500">
+      </div>
+      <div>
+        <label class="block text-xs font-black uppercase tracking-wider text-slate-500 mb-1.5">Precio ($)</label>
+        <input type="number" step="0.01" id="manual-price" placeholder="0.00" class="w-full p-3 border-2 border-slate-200 rounded-xl font-mono font-black outline-none focus:border-fuchsia-500">
+      </div>
+      <div class="flex gap-2 pt-2">
+        <button onclick="closeManualItemModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 py-3 rounded-xl text-slate-700 font-bold transition">Cancelar</button>
+        <button onclick="addManualItemToCart()" class="flex-1 bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-700 hover:to-pink-700 text-white py-3 rounded-xl font-black transition shadow-md shadow-fuchsia-500/20">Agregar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="payment-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl border-2 border-emerald-500/30">
+      <h3 class="font-black text-slate-800 text-xl">Abonar a Deuda</h3>
+      <p id="modal-debtor-info" class="text-xs text-slate-500 font-bold"></p>
+      <div>
+        <label class="block text-xs font-black uppercase tracking-wider text-slate-500 mb-1.5">Monto a Abonar ($)</label>
+        <input type="number" step="0.01" id="pay-debt-amount" placeholder="0.00" class="w-full p-3 border-2 border-slate-200 rounded-xl font-mono font-black outline-none focus:border-emerald-500">
+      </div>
+      <div class="flex gap-2 pt-2">
+        <button onclick="closePayModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 py-3 rounded-xl text-slate-700 font-bold transition">Cancelar</button>
+        <button onclick="submitDebtorPayment()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-black transition shadow-md shadow-emerald-500/20">Abonar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="scanner-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl border-2 border-cyan-500/30">
+      <div class="flex justify-between items-center">
+        <h3 class="font-black text-slate-800">Escanear Código SKU</h3>
+        <button onclick="stopCameraScanner()" class="text-slate-400 hover:text-slate-600 text-2xl font-black">&times;</button>
+      </div>
+      <div id="reader" class="overflow-hidden rounded-2xl bg-slate-100 border-2 border-slate-200"></div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT -->
+  <script>
+    const defaultUsers = [
+      { id: '1', username: 'Nuni', pin: '1234', role: 'admin' },
+      { id: '2', username: 'July', pin: '0000', role: 'cajero' },
+      { id: '3', username: 'Gustavo', pin: '0000', role: 'cajero' }
+    ];
+
+    const defaultProducts = [
+      { id: '1', sku: '7791234567890', name: 'Café de Especialidad 250g', price: 2500, stock: 20 },
+      { id: '2', sku: '7799876543210', name: 'Galletas Artesanales', price: 1200, stock: 15 },
+      { id: '3', sku: '7795555444433', name: 'Jugo Natural 500ml', price: 1800, stock: 4 }
+    ];
+
+    let users = JSON.parse(localStorage.getItem('pos_users')) || defaultUsers;
+    let products = JSON.parse(localStorage.getItem('pos_products')) || defaultProducts;
+    let debtors = JSON.parse(localStorage.getItem('pos_debtors')) || [];
+    let sales = JSON.parse(localStorage.getItem('pos_sales')) || [];
+    let currentUser = JSON.parse(localStorage.getItem('pos_current_user')) || null;
+    let cart = [];
+    let activeDebtorForPayment = null;
+    let html5QrcodeScanner = null;
+    let currentScanTarget = 'caja';
+
+    document.addEventListener('DOMContentLoaded', () => {
+      initUsersSelect();
+      if (currentUser) {
+        showAppScreen();
+      } else {
+        showLoginScreen();
+      }
+
+      document.getElementById('sku-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const sku = e.target.value.trim();
+          if (sku) {
+            handleScannedSKU(sku);
+            e.target.value = '';
+          }
+        }
+      });
+    });
+
+    function saveData() {
+      localStorage.setItem('pos_users', JSON.stringify(users));
+      localStorage.setItem('pos_products', JSON.stringify(products));
+      localStorage.setItem('pos_debtors', JSON.stringify(debtors));
+      localStorage.setItem('pos_sales', JSON.stringify(sales));
+      localStorage.setItem('pos_current_user', JSON.stringify(currentUser));
+    }
+
+    function showToast(msg, isError = false) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.className = `fixed bottom-5 right-5 z-50 ${isError ? 'bg-rose-600 border-rose-400' : 'bg-emerald-600 border-emerald-400'} text-white px-5 py-3.5 rounded-2xl shadow-2xl font-black text-sm transition-all duration-300 flex items-center gap-2 border-2`;
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 3000);
+    }
+
+    function initUsersSelect() {
+      const select = document.getElementById('login-user');
+      select.innerHTML = users.map(u => `<option value="${u.id}">${u.username}</option>`).join('');
+    }
+
+    function handleLogin(e) {
+      e.preventDefault();
+      const userId = document.getElementById('login-user').value;
+      const pin = document.getElementById('login-pin').value;
+
+      const user = users.find(u => u.id === userId && u.pin === pin);
+      if (user) {
+        currentUser = user;
+        saveData();
+        document.getElementById('login-pin').value = '';
+        showAppScreen();
+        showToast(`¡Bienvenido/a ${user.username}!`);
+      } else {
+        showToast('Clave / PIN incorrecto', true);
+      }
+    }
+
+    function handleLogout() {
+      currentUser = null;
+      saveData();
+      showLoginScreen();
+    }
+
+    function showLoginScreen() {
+      document.getElementById('login-screen').classList.remove('hidden');
+      document.getElementById('app-screen').classList.add('hidden');
+      document.getElementById('app-screen').classList.remove('flex');
+    }
+
+    function showAppScreen() {
+      document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('app-screen').classList.remove('hidden');
+      document.getElementById('app-screen').classList.add('flex');
+      document.getElementById('current-user-name').textContent = currentUser.username;
+      renderAll();
+    }
+
+    function changeTab(tabName) {
+      ['caja', 'inventario', 'deudores', 'historial'].forEach(t => {
+        document.getElementById(`tab-${t}`).classList.add('hidden');
+        document.getElementById(`btn-${t}`).className = 'px-5 py-2.5 rounded-xl text-xs font-black transition-all text-indigo-200 hover:text-white hover:bg-indigo-600/30';
+      });
+
+      document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+      document.getElementById(`btn-${tabName}`).className = 'px-5 py-2.5 rounded-xl text-xs font-black transition-all shadow-md bg-gradient-to-r from-emerald-500 to-teal-600 text-white';
+    }
+
+    function handleScannedSKU(sku) {
+      const product = products.find(p => p.sku === sku);
+      if (!product) {
+        showToast(`SKU '${sku}' no encontrado`, true);
+        return;
+      }
+      addToCart(product.id);
+    }
+
+    function addToCart(productId) {
+      const product = products.find(p => p.id === productId);
+      if (!product) return;
+
+      const cartItem = cart.find(i => i.product.id === productId);
+      const currentQty = cartItem ? cartItem.qty : 0;
+
+      if (currentQty + 1 > product.stock) {
+        showToast(`Stock insuficiente de ${product.name}`, true);
+        return;
+      }
+
+      if (cartItem) {
+        cartItem.qty += 1;
+      } else {
+        cart.push({ product, qty: 1 });
+      }
+
+      showToast(`Añadido: ${product.name}`);
+      renderCart();
+    }
+
+    function openManualItemModal() {
+      document.getElementById('manual-name').value = '';
+      document.getElementById('manual-price').value = '';
+      document.getElementById('manual-item-modal').classList.remove('hidden');
+    }
+
+    function closeManualItemModal() {
+      document.getElementById('manual-item-modal').classList.add('hidden');
+    }
+
+    function addManualItemToCart() {
+      const nameInput = document.getElementById('manual-name').value.trim();
+      const priceInput = parseFloat(document.getElementById('manual-price').value);
+
+      if (!priceInput || priceInput <= 0) {
+        showToast('Ingresá un precio válido', true);
+        return;
+      }
+
+      const name = nameInput || 'Venta Varios';
+      const manualId = 'manual-' + Date.now();
+
+      const manualProduct = {
+        id: manualId,
+        sku: 'SIN SKU',
+        name: name,
+        price: priceInput,
+        stock: Infinity,
+        isManual: true
+      };
+
+      cart.push({ product: manualProduct, qty: 1 });
+      closeManualItemModal();
+      showToast(`Añadido: ${name}`);
+      renderCart();
+    }
+
+    function updateCartQty(productId, delta) {
+      const idx = cart.findIndex(i => i.product.id === productId);
+      if (idx === -1) return;
+
+      const item = cart[idx];
+      const newQty = item.qty + delta;
+
+      if (!item.product.isManual && newQty > item.product.stock) {
+        showToast('Supera el stock disponible', true);
+        return;
+      }
+
+      if (newQty <= 0) {
+        cart.splice(idx, 1);
+      } else {
+        cart[idx].qty = newQty;
+      }
+      renderCart();
+    }
+
+    function toggleDebtorSelector() {
+      const method = document.getElementById('payment-method').value;
+      const debtorContainer = document.getElementById('debtor-select-container');
+      const cashContainer = document.getElementById('cash-calculation-container');
+
+      if (method === 'Fiado') {
+        debtorContainer.classList.remove('hidden');
+        cashContainer.classList.add('hidden');
+      } else if (method === 'Efectivo') {
+        debtorContainer.classList.add('hidden');
+        cashContainer.classList.remove('hidden');
+      } else {
+        debtorContainer.classList.add('hidden');
+        cashContainer.classList.add('hidden');
+      }
+    }
+
+    function calculateChange() {
+      const total = cart.reduce((sum, item) => sum + (item.product.price * item.qty), 0);
+      const paid = parseFloat(document.getElementById('paid-amount').value) || 0;
+      const changeEl = document.getElementById('change-amount');
+
+      if (paid >= total && total > 0) {
+        const change = paid - total;
+        changeEl.textContent = `$${change.toFixed(2)}`;
+        changeEl.className = 'text-emerald-600 font-mono text-lg font-black';
+      } else {
+        changeEl.textContent = '$0.00';
+        changeEl.className = 'text-slate-300 font-mono text-lg font-black';
+      }
+    }
+
+    function processCheckout() {
+      if (cart.length === 0) {
+        showToast('El carrito está vacío', true);
+        return;
+      }
+
+      const total = cart.reduce((sum, item) => sum + (item.product.price * item.qty), 0);
+      const paymentMethod = document.getElementById('payment-method').value;
+      let paidWith = total;
+      let changeGiven = 0;
+      let debtorName = null;
+
+      if (paymentMethod === 'Efectivo') {
+        paidWith = parseFloat(document.getElementById('paid-amount').value) || total;
+        if (paidWith < total) {
+          showToast('El monto entregado es menor al total', true);
+          return;
+        }
+        changeGiven = paidWith - total;
+      } else if (paymentMethod === 'Fiado') {
+        const debtorId = document.getElementById('debtor-select').value;
+        if (!debtorId) {
+          showToast('Debes seleccionar un deudor', true);
+          return;
+        }
+        const debtor = debtors.find(d => d.id === debtorId);
+        if (debtor) {
+          debtor.debt += total;
+          debtorName = debtor.name;
+
+          // Registrar en el historial del deudor
+          if (!debtor.history) debtor.history = [];
+          debtor.history.unshift({
+            date: new Date().toLocaleString(),
+            type: 'CARGO',
+            concept: `Compra Fiada (${cart.map(i => i.product.name).join(', ')})`,
+            amount: total
+          });
+        }
+      }
+
+      cart.forEach(item => {
+        if (!item.product.isManual) {
+          const prod = products.find(p => p.id === item.product.id);
+          if (prod) prod.stock -= item.qty;
+        }
+      });
+
+      const sale = {
+        id: Date.now().toString(),
+        date: new Date().toLocaleString(),
+        seller: currentUser ? currentUser.username : 'Admin',
+        items: cart.map(i => `${i.product.name} (x${i.qty})`).join(', '),
+        total,
+        paymentMethod: paymentMethod === 'Fiado' ? `Fiado (${debtorName})` : paymentMethod,
+        paidWith,
+        changeGiven
+      };
+
+      sales.unshift(sale);
+      cart = [];
+      document.getElementById('paid-amount').value = '';
+      saveData();
+      renderAll();
+      showToast('¡Venta cobrada con éxito!');
+    }
+
+    function saveDebtor(e) {
+      e.preventDefault();
+      const name = document.getElementById('d-name').value.trim();
+      const initialDebt = parseFloat(document.getElementById('d-initial').value) || 0;
+
+      const history = [];
+      if (initialDebt > 0) {
+        history.push({
+          date: new Date().toLocaleString(),
+          type: 'CARGO',
+          concept: 'Deuda Inicial Registrada',
+          amount: initialDebt
+        });
+      }
+
+      debtors.push({ id: Date.now().toString(), name, phone: '', debt: initialDebt, history });
+      
+      document.getElementById('d-name').value = '';
+      document.getElementById('d-initial').value = '0';
+      
+      saveData();
+      renderAll();
+      showToast('Deudor registrado');
+    }
+
+    function openPayModal(debtorId) {
+      const debtor = debtors.find(d => d.id === debtorId);
+      if (!debtor) return;
+      activeDebtorForPayment = debtor;
+      document.getElementById('modal-debtor-info').textContent = `Cliente: ${debtor.name} - Deuda actual: $${debtor.debt.toFixed(2)}`;
+      document.getElementById('pay-debt-amount').value = '';
+      document.getElementById('payment-modal').classList.remove('hidden');
+    }
+
+    function closePayModal() {
+      activeDebtorForPayment = null;
+      document.getElementById('payment-modal').classList.add('hidden');
+    }
+
+    function submitDebtorPayment() {
+      if (!activeDebtorForPayment) return;
+      const amount = parseFloat(document.getElementById('pay-debt-amount').value) || 0;
+      if (amount <= 0) {
+        showToast('Ingresá un monto válido', true);
+        return;
+      }
+
+      activeDebtorForPayment.debt = Math.max(0, activeDebtorForPayment.debt - amount);
+
+      if (!activeDebtorForPayment.history) activeDebtorForPayment.history = [];
+      activeDebtorForPayment.history.unshift({
+        date: new Date().toLocaleString(),
+        type: 'ABONO',
+        concept: 'Pago / Abono a Cuenta',
+        amount: amount
+      });
+
+      saveData();
+      renderAll();
+      closePayModal();
+      showToast('Abono registrado');
+    }
+
+    /* HISTORIAL INDIVIDUAL DE CADA DEUDOR */
+    function openDebtorHistoryModal(debtorId) {
+      const debtor = debtors.find(d => d.id === debtorId);
+      if (!debtor) return;
+
+      document.getElementById('history-modal-title').textContent = debtor.name;
+      document.getElementById('history-modal-subtitle').textContent = `Deuda Actual: $${debtor.debt.toFixed(2)}`;
+
+      const tbody = document.getElementById('debtor-history-body');
+      const historyList = debtor.history || [];
+
+      if (historyList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" class="py-4 text-center text-slate-400">Sin movimientos registrados</td></tr>`;
+      } else {
+        tbody.innerHTML = historyList.map(h => `
+          <tr class="hover:bg-slate-50">
+            <td class="py-2.5 text-slate-400 font-mono text-[11px]">${h.date}</td>
+            <td class="py-2.5">
+              <span class="${h.type === 'CARGO' ? 'text-rose-600' : 'text-emerald-600'} font-black uppercase text-[10px] block">${h.type}</span>
+              <span class="text-slate-700">${h.concept}</span>
+            </td>
+            <td class="py-2.5 text-right font-mono font-black ${h.type === 'CARGO' ? 'text-rose-600' : 'text-emerald-600'}">
+              ${h.type === 'CARGO' ? '+' : '-'}$${h.amount.toFixed(2)}
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      document.getElementById('debtor-history-modal').classList.remove('hidden');
+    }
+
+    function closeDebtorHistoryModal() {
+      document.getElementById('debtor-history-modal').classList.add('hidden');
+    }
+
+    function editProduct(productId) {
+      const product = products.find(p => p.id === productId);
+      if (!product) return;
+
+      document.getElementById('p-id').value = product.id;
+      document.getElementById('p-sku').value = product.sku;
+      document.getElementById('p-name').value = product.name;
+      document.getElementById('p-price').value = product.price;
+      document.getElementById('p-stock').value = product.stock;
+
+      document.getElementById('form-title').innerHTML = `<span class="w-3 h-3 rounded-full bg-amber-500 animate-ping"></span> Editando Producto: ${product.name}`;
+      document.getElementById('btn-save-product').textContent = 'Actualizar Producto';
+      document.getElementById('btn-save-product').className = 'bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white px-8 py-3 rounded-xl font-black transition shadow-lg shadow-amber-500/20';
+      document.getElementById('btn-cancel-edit').classList.remove('hidden');
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function cancelEditingProduct() {
+      document.getElementById('p-id').value = '';
+      document.getElementById('product-form').reset();
+
+      document.getElementById('form-title').innerHTML = `<span class="w-3 h-3 rounded-full bg-indigo-600"></span> Registrar Producto`;
+      document.getElementById('btn-save-product').textContent = 'Guardar Producto';
+      document.getElementById('btn-save-product').className = 'bg-gradient-to-r from-indigo-600 to-fuchsia-600 hover:from-indigo-700 hover:to-fuchsia-700 text-white px-8 py-3 rounded-xl font-black transition shadow-lg shadow-indigo-500/20';
+      document.getElementById('btn-cancel-edit').classList.add('hidden');
+    }
+
+    function saveProduct(e) {
+      e.preventDefault();
+      const id = document.getElementById('p-id').value;
+      const sku = document.getElementById('p-sku').value.trim();
+      const name = document.getElementById('p-name').value.trim();
+      const price = parseFloat(document.getElementById('p-price').value);
+      const stock = parseInt(document.getElementById('p-stock').value);
+
+      if (id) {
+        const index = products.findIndex(p => p.id === id);
+        if (index !== -1) {
+          products[index] = { ...products[index], sku, name, price, stock };
+          showToast('Producto actualizado correctamente');
+        }
+      } else {
+        const existingBySku = products.find(p => p.sku === sku);
+        if (existingBySku) {
+          showToast('Ya existe un producto con ese SKU', true);
+          return;
+        }
+        products.push({ id: Date.now().toString(), sku, name, price, stock });
+        showToast('Producto creado con éxito');
+      }
+
+      cancelEditingProduct();
+      saveData();
+      renderAll();
+    }
+
+    function deleteProduct(productId) {
+      if (confirm('¿Eliminar este producto?')) {
+        products = products.filter(p => p.id !== productId);
+        saveData();
+        renderAll();
+        showToast('Producto eliminado');
+      }
+    }
+
+    function startCameraScanner(target = 'caja') {
+      currentScanTarget = target;
+      document.getElementById('scanner-modal').classList.remove('hidden');
+      html5QrcodeScanner = new Html5Qrcode("reader");
+      
+      html5QrcodeScanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 220, height: 120 } },
+        (decodedText) => {
+          if (currentScanTarget === 'p-sku') {
+            document.getElementById('p-sku').value = decodedText;
+            showToast(`SKU asignado: ${decodedText}`);
+          } else {
+            handleScannedSKU(decodedText);
+          }
+          stopCameraScanner();
+        },
+        () => {}
+      ).catch(() => {
+        showToast('No se pudo acceder a la cámara', true);
+        stopCameraScanner();
+      });
+    }
+
+    function stopCameraScanner() {
+      if (html5QrcodeScanner) {
+        html5QrcodeScanner.stop().then(() => {
+          html5QrcodeScanner.clear();
+          document.getElementById('scanner-modal').classList.add('hidden');
+        }).catch(() => {
+          document.getElementById('scanner-modal').classList.add('hidden');
+        });
+      } else {
+        document.getElementById('scanner-modal').classList.add('hidden');
+      }
+    }
+
+    function renderAll() {
+      renderCatalog();
+      renderCart();
+      renderDebtorsSelect();
+      renderInventoryTable();
+      renderDebtorsTable();
+      renderSalesTable();
+    }
+
+    function renderCatalog() {
+      const grid = document.getElementById('catalog-grid');
+      grid.innerHTML = products.map(p => `
+        <button onclick="addToCart('${p.id}')" class="group p-3.5 border-2 border-slate-100 rounded-2xl text-left hover:border-cyan-500 hover:shadow-xl transition-all bg-gradient-to-b from-white to-indigo-50/30 flex flex-col justify-between">
+          <div>
+            <span class="text-[10px] font-mono font-black text-cyan-700 bg-cyan-100/80 px-2 py-0.5 rounded-md">SKU: ${p.sku}</span>
+            <h4 class="font-black text-slate-800 text-sm leading-tight mt-2 group-hover:text-indigo-600 transition">${p.name}</h4>
+          </div>
+          <div class="flex justify-between items-center mt-3 pt-2 border-t border-slate-100 w-full">
+            <span class="text-indigo-600 font-black text-base">$${p.price.toFixed(2)}</span>
+            <span class="text-[11px] font-bold ${p.stock < 5 ? 'text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md' : 'text-slate-400'}">Stock: ${p.stock}</span>
+          </div>
+        </button>
+      `).join('');
+    }
+
+    function renderCart() {
+      const container = document.getElementById('cart-items');
+      const totalEl = document.getElementById('cart-total');
+
+      if (cart.length === 0) {
+        container.innerHTML = `<div class="text-center py-12 text-slate-400 text-xs font-black">Sin productos en el ticket</div>`;
+        totalEl.textContent = '$0.00';
+        calculateChange();
+        return;
+      }
+
+      let total = 0;
+      container.innerHTML = cart.map(item => {
+        const subtotal = item.product.price * item.qty;
+        total += subtotal;
+        return `
+          <div class="pt-2 flex justify-between items-center">
+            <div class="flex-1 pr-2">
+              <h4 class="font-black text-xs text-slate-800 leading-snug">${item.product.name}</h4>
+              <span class="text-[10px] text-slate-400 font-mono font-bold">$${item.product.price.toFixed(2)} c/u ${item.product.isManual ? '(Sin SKU)' : ''}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="updateCartQty('${item.product.id}', -1)" class="w-6 h-6 rounded-lg bg-indigo-100 hover:bg-indigo-200 text-indigo-900 flex items-center justify-center font-black text-xs transition">-</button>
+              <span class="text-xs font-black w-4 text-center">${item.qty}</span>
+              <button onclick="updateCartQty('${item.product.id}', 1)" class="w-6 h-6 rounded-lg bg-indigo-100 hover:bg-indigo-200 text-indigo-900 flex items-center justify-center font-black text-xs transition">+</button>
+              <span class="text-xs font-black font-mono text-slate-800 w-16 text-right">$${subtotal.toFixed(2)}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      totalEl.textContent = `$${total.toFixed(2)}`;
+      calculateChange();
+    }
+
+    function renderDebtorsSelect() {
+      const select = document.getElementById('debtor-select');
+      if (debtors.length === 0) {
+        select.innerHTML = `<option value="">No hay deudores registrados</option>`;
+      } else {
+        select.innerHTML = debtors.map(d => `<option value="${d.id}">${d.name} (Deuda: $${d.debt.toFixed(2)})</option>`).join('');
+      }
+    }
+
+    function renderInventoryTable() {
+      const tbody = document.getElementById('inventory-table-body');
+      tbody.innerHTML = products.map(p => `
+        <tr class="hover:bg-indigo-50/30 transition">
+          <td class="p-4 font-mono text-xs text-indigo-600 font-bold">${p.sku}</td>
+          <td class="p-4 font-black text-slate-800">${p.name}</td>
+          <td class="p-4 text-slate-700 font-mono font-bold">$${p.price.toFixed(2)}</td>
+          <td class="p-4">
+            <span class="px-3 py-1 rounded-full text-xs font-black ${p.stock < 5 ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-emerald-100 text-emerald-800 border border-emerald-300'}">
+              ${p.stock} unidades
+            </span>
+          </td>
+          <td class="p-4 text-right flex justify-end gap-2">
+            <button onclick="editProduct('${p.id}')" class="text-amber-700 hover:text-amber-900 font-bold text-xs bg-amber-50 hover:bg-amber-100 border border-amber-200 px-3 py-1 rounded-lg transition">Editar</button>
+            <button onclick="deleteProduct('${p.id}')" class="text-rose-600 hover:text-rose-800 font-bold text-xs bg-rose-50 hover:bg-rose-100 border border-rose-200 px-3 py-1 rounded-lg transition">Eliminar</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function renderDebtorsTable() {
+      const tbody = document.getElementById('debtors-table-body');
+      const totalDebtEl = document.getElementById('total-debt-badge');
+      
+      const totalDebt = debtors.reduce((sum, d) => sum + d.debt, 0);
+      totalDebtEl.textContent = `Total Deudas: $${totalDebt.toFixed(2)}`;
+
+      if (debtors.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-400 font-black text-xs">Sin deudores registrados</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = debtors.map(d => `
+        <tr class="hover:bg-rose-50/30 transition">
+          <td class="p-4 font-black text-slate-800">${d.name}</td>
+          <td class="p-4 text-slate-400 text-xs font-mono">${d.phone || '-'}</td>
+          <td class="p-4 font-mono font-black ${d.debt > 0 ? 'text-rose-600' : 'text-emerald-600'}">$${d.debt.toFixed(2)}</td>
+          <td class="p-4 text-right flex justify-end gap-2">
+            <button onclick="openDebtorHistoryModal('${d.id}')" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-900 border border-indigo-300 font-black px-3 py-1.5 rounded-xl text-xs transition">👁️ Historial</button>
+            <button onclick="openPayModal('${d.id}')" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-900 border border-emerald-300 font-black px-3 py-1.5 rounded-xl text-xs transition">💳 Abonar</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function renderSalesTable() {
+      const tbody = document.getElementById('sales-table-body');
+      if (sales.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400 font-black text-xs">Sin ventas registradas</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = sales.map(s => `
+        <tr class="hover:bg-slate-50 transition">
+          <td class="p-4 text-xs font-bold text-slate-500 font-mono">${s.date}</td>
+          <td class="p-4 text-xs font-black"><span class="bg-indigo-100 text-indigo-900 border border-indigo-200 px-3 py-1 rounded-lg">${s.seller || 'Admin'}</span></td>
+          <td class="p-4 font-bold text-slate-800 text-xs">${s.items}</td>
+          <td class="p-4 text-xs text-slate-600">
+            <span class="bg-slate-100 font-black text-slate-700 px-3 py-1 rounded-lg">${s.paymentMethod}</span>
+            ${s.changeGiven > 0 ? `<span class="block text-[10px] text-slate-400 font-mono font-bold mt-1">PAGÓ: $${s.paidWith.toFixed(2)} | VUELTO: $${s.changeGiven.toFixed(2)}</span>` : ''}
+          </td>
+          <td class="p-4 font-black font-mono text-indigo-600 text-base">$${s.total.toFixed(2)}</td>
+        </tr>
+      `).join('');
+    }
+  </script>
+</body>
+</html>
