@@ -14,6 +14,29 @@
     ::-webkit-scrollbar-track { background: #f1f5f9; }
     ::-webkit-scrollbar-thumb { background: #6366f1; border-radius: 9999px; }
     ::-webkit-scrollbar-thumb:hover { background: #4f46e5; }
+
+    /* Animación Láser del Escáner estilo Mercado Pago */
+    @keyframes scan-line {
+      0% { top: 5%; }
+      50% { top: 90%; }
+      100% { top: 5%; }
+    }
+
+    .laser-line {
+      position: absolute;
+      width: 100%;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, #06b6d4, #22d3ee, #06b6d4, transparent);
+      box-shadow: 0 0 15px #22d3ee;
+      animation: scan-line 2s ease-in-out infinite;
+    }
+
+    /* Ajuste para que el video de Html5Qrcode ocupe toda la pantalla */
+    #reader video {
+      width: 100% !important;
+      height: 100vh !important;
+      object-fit: cover !important;
+    }
   </style>
 </head>
 <body class="bg-slate-900 font-sans min-h-screen flex flex-col text-slate-800 antialiased selection:bg-fuchsia-500 selection:text-white bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-indigo-950 to-slate-950">
@@ -334,7 +357,7 @@
     </div>
   </div>
 
-  <!-- MODALS SECUNDARIOS (SIN CAMBIOS) -->
+  <!-- MODAL VENTA LIBRE -->
   <div id="manual-item-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl border-2 border-fuchsia-500/30">
       <h3 class="font-black text-slate-800 text-xl">Agregar Venta Libre / Sin SKU</h3>
@@ -353,6 +376,7 @@
     </div>
   </div>
 
+  <!-- MODAL PAGOS -->
   <div id="payment-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl border-2 border-emerald-500/30">
       <h3 class="font-black text-slate-800 text-xl">Abonar a Deuda</h3>
@@ -368,14 +392,37 @@
     </div>
   </div>
 
-  <div id="scanner-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl border-2 border-cyan-500/30">
-      <div class="flex justify-between items-center">
-        <h3 class="font-black text-slate-800">Escanear Código SKU</h3>
-        <button onclick="stopCameraScanner()" class="text-slate-400 hover:text-slate-600 text-2xl font-black">&times;</button>
+  <!-- MODAL ESCÁNER PANTALLA COMPLETA ESTILO MERCADO PAGO -->
+  <div id="scanner-modal" class="fixed inset-0 bg-slate-950 z-50 hidden flex flex-col justify-between overflow-hidden">
+    
+    <!-- Header Flotante -->
+    <div class="absolute top-0 inset-x-0 p-5 z-20 flex justify-between items-center bg-gradient-to-b from-black/80 via-black/40 to-transparent">
+      <div class="flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping"></span>
+        <h3 class="font-black text-white text-base tracking-wide drop-shadow">Escanear Código</h3>
       </div>
-      <div id="reader" class="overflow-hidden rounded-2xl bg-slate-100 border-2 border-slate-200"></div>
+      <button onclick="stopCameraScanner()" class="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white w-10 h-10 rounded-full flex items-center justify-center font-black text-lg transition active:scale-95 shadow-lg">
+        &times;
+      </button>
     </div>
+
+    <!-- Contenedor del Video -->
+    <div id="reader" class="w-full h-full object-cover"></div>
+
+    <!-- Visor con Máscara Oscura y Láser Animado -->
+    <div class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+      <div class="relative w-72 h-48 rounded-3xl border-2 border-cyan-400/80 shadow-[0_0_0_9999px_rgba(15,23,42,0.75)] overflow-hidden">
+        <div class="laser-line"></div>
+      </div>
+    </div>
+
+    <!-- Indicación Footer -->
+    <div class="absolute bottom-10 inset-x-0 z-20 text-center px-4">
+      <p class="text-white/80 font-bold text-xs bg-slate-900/60 backdrop-blur-md py-2 px-4 rounded-full inline-block border border-white/10 shadow-lg">
+        Apunta con la cámara al código de barras o QR
+      </p>
+    </div>
+
   </div>
 
   <!-- JAVASCRIPT -->
@@ -640,7 +687,6 @@
           debtor.debt += total;
           debtorName = debtor.name;
 
-          // Registrar en el historial del deudor
           if (!debtor.history) debtor.history = [];
           debtor.history.unshift({
             date: new Date().toLocaleString(),
@@ -740,7 +786,6 @@
       showToast('Abono registrado');
     }
 
-    /* HISTORIAL INDIVIDUAL DE CADA DEUDOR */
     function openDebtorHistoryModal(debtorId) {
       const debtor = debtors.find(d => d.id === debtorId);
       if (!debtor) return;
@@ -841,6 +886,7 @@
       }
     }
 
+    /* ESCÁNER CÁMARA MEJORADO ESTILO MP */
     function startCameraScanner(target = 'caja') {
       currentScanTarget = target;
       document.getElementById('scanner-modal').classList.remove('hidden');
@@ -848,8 +894,13 @@
       
       html5QrcodeScanner.start(
         { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 220, height: 120 } },
+        { fps: 15, qrbox: { width: 280, height: 180 } },
         (decodedText) => {
+          // Feedback de vibración en el móvil
+          if (navigator.vibrate) {
+            navigator.vibrate(100);
+          }
+
           if (currentScanTarget === 'p-sku') {
             document.getElementById('p-sku').value = decodedText;
             showToast(`SKU asignado: ${decodedText}`);
